@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IELTS Academic Practice Test</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── STYLES ──────────────────────────────────────────────────────────────────
+const style = `
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Source Serif 4', Georgia, serif; background: #0f1117; color: #e8e0d0; min-height: 100vh; }
+  :root {
+    --gold: #c9a84c; --gold-light: #e8c97a; --cream: #f0e8d8;
+    --deep: #0f1117; --panel: #181c26; --border: #2a2f3d;
+    --accent: #3a6186; --green: #4a9b6f; --red: #c0392b;
+    --text: #e8e0d0; --muted: #8a8a9a;
+  }
+  .app { max-width: 980px; margin: 0 auto; padding: 20px; }
+  .header { text-align: center; padding: 40px 20px 30px; border-bottom: 1px solid var(--border); margin-bottom: 32px; position: relative; }
+  .header::before { content:''; position:absolute; bottom:-1px; left:50%; transform:translateX(-50%); width:120px; height:2px; background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+  .header-label { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
+  .header h1 { font-family:'Playfair Display',serif; font-size:clamp(26px,5vw,44px); font-weight:700; color:var(--cream); line-height:1.1; }
+  .header-meta { margin-top:16px; display:flex; justify-content:center; gap:28px; flex-wrap:wrap; }
+  .header-meta span { font-size:13px; color:var(--muted); }
+  .header-meta strong { color:var(--gold-light); }
+  .tabs { display:flex; gap:4px; margin-bottom:28px; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:6px; }
+  .tab { flex:1; padding:10px 8px; border:none; background:transparent; color:var(--muted); font-family:'Source Serif 4',serif; font-size:13px; cursor:pointer; border-radius:6px; transition:all 0.2s; }
+  .tab.active { background:var(--accent); color:var(--cream); font-weight:600; }
+  .tab.done { color:var(--green); }
+  .tab:hover:not(.active) { background:#23283a; color:var(--text); }
+  .section-panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .section-header { padding:24px 28px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+  .section-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--cream); margin-bottom:4px; }
+  .section-desc { font-size:13px; color:var(--muted); line-height:1.6; }
+  .timer-block { background:#0f1117; border:1px solid var(--border); border-radius:8px; padding:10px 18px; text-align:center; min-width:100px; }
+  .timer-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .timer-value { font-family:'Playfair Display',serif; font-size:26px; color:var(--gold); letter-spacing:2px; }
+  .timer-value.warning { color:#e67e22; }
+  .timer-value.danger { color:var(--red); animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
+  .passage-block { padding:24px 28px; border-bottom:1px solid var(--border); background:#13171f; }
+  .passage-title { font-family:'Playfair Display',serif; font-size:17px; color:var(--gold-light); margin-bottom:14px; }
+  .passage-text { font-size:14.5px; line-height:1.9; color:#c8c0b0; font-weight:300; }
+  .passage-text p { margin-bottom:14px; }
+  .questions-block { padding:24px 28px; }
+  .q-group { margin-bottom:32px; }
+  .q-group-title { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--gold); margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .question { margin-bottom:20px; }
+  .q-text { font-size:14px; line-height:1.7; color:var(--text); margin-bottom:10px; display:flex; align-items:flex-start; gap:8px; }
+  .q-num { color:var(--gold); font-weight:600; min-width:24px; }
+  .options { display:flex; flex-direction:column; gap:8px; }
+  .option { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border:1px solid var(--border); border-radius:6px; cursor:pointer; transition:all 0.15s; font-size:13.5px; line-height:1.5; color:var(--muted); }
+  .option:hover { border-color:var(--accent); color:var(--text); background:#1a1f2e; }
+  .option.selected { border-color:var(--accent); background:#1e2535; color:var(--text); }
+  .option.correct { border-color:var(--green); background:#1a2e22; color:#7dcfa0; }
+  .option.incorrect { border-color:var(--red); background:#2e1a1a; color:#e07070; }
+  .option-letter { min-width:22px; height:22px; border-radius:50%; border:1px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex-shrink:0; margin-top:1px; }
+  .fill-input { width:100%; max-width:400px; background:#13171f; border:1px solid var(--border); border-radius:6px; padding:10px 14px; color:var(--text); font-family:'Source Serif 4',serif; font-size:14px; outline:none; transition:border-color 0.2s; }
+  .fill-input:focus { border-color:var(--accent); }
+  .fill-input.correct { border-color:var(--green); }
+  .fill-input.incorrect { border-color:var(--red); }
+  .textarea-input { width:100%; background:#13171f; border:1px solid var(--border); border-radius:8px; padding:14px 16px; color:var(--text); font-family:'Source Serif 4',serif; font-size:14px; line-height:1.8; outline:none; resize:vertical; transition:border-color 0.2s; min-height:220px; }
+  .textarea-input:focus { border-color:var(--accent); }
+  .word-count { font-size:12px; color:var(--muted); margin-top:6px; }
+  .word-count.ok { color:var(--green); }
+  .word-count.warn { color:#e67e22; }
+  .writing-prompt { background:#13171f; border-left:3px solid var(--gold); padding:16px 20px; margin-bottom:20px; border-radius:0 8px 8px 0; font-size:14px; line-height:1.8; color:#c8c0b0; white-space:pre-line; }
+  .actions { padding:20px 28px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .btn { padding:11px 28px; border-radius:8px; font-family:'Source Serif 4',serif; font-size:14px; cursor:pointer; border:none; transition:all 0.2s; letter-spacing:0.3px; }
+  .btn-primary { background:var(--gold); color:#0f1117; font-weight:600; }
+  .btn-primary:hover { background:var(--gold-light); }
+  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+  .btn-secondary { background:transparent; border:1px solid var(--border); color:var(--muted); }
+  .btn-secondary:hover { border-color:var(--accent); color:var(--text); }
+  .progress-bar { height:3px; background:var(--border); border-radius:2px; margin-bottom:28px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--gold)); border-radius:2px; transition:width 0.4s ease; }
+
+  /* AUDIO PLAYER */
+  .audio-player { background:#13171f; border:1px solid var(--border); border-radius:10px; padding:20px 24px; margin-bottom:20px; }
+  .audio-top { display:flex; align-items:center; gap:16px; margin-bottom:14px; }
+  .audio-icon { font-size:32px; }
+  .audio-info h4 { font-size:15px; color:var(--cream); margin-bottom:3px; }
+  .audio-info p { font-size:12px; color:var(--muted); }
+  .audio-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .play-btn { display:flex; align-items:center; gap:8px; padding:10px 22px; background:var(--accent); border:none; border-radius:8px; color:white; font-family:'Source Serif 4',serif; font-size:14px; cursor:pointer; transition:all 0.2s; }
+  .play-btn:hover { opacity:0.85; }
+  .play-btn.playing { background:#2a7a5a; }
+  .play-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .tts-status { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .tts-dot { width:8px; height:8px; border-radius:50%; background:var(--green); animation:pulse 1s infinite; }
+  .speed-select { background:#0f1117; border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--muted); font-size:13px; outline:none; }
+
+  /* SPEAKING */
+  .speaking-card { background:#13171f; border:1px solid var(--border); border-radius:10px; padding:22px; margin-bottom:16px; }
+  .speaking-card h4 { font-family:'Playfair Display',serif; font-size:15px; color:var(--gold-light); margin-bottom:10px; }
+  .speaking-card ul { padding-left:20px; margin-bottom:12px; }
+  .speaking-card li { font-size:13.5px; color:var(--muted); line-height:1.8; }
+  .speak-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  .rec-btn { display:flex; align-items:center; gap:8px; padding:10px 20px; border:1px solid var(--accent); border-radius:8px; background:transparent; color:var(--accent); font-family:'Source Serif 4',serif; font-size:13px; cursor:pointer; transition:all 0.2s; }
+  .rec-btn:hover { background:var(--accent); color:white; }
+  .rec-btn.active { border-color:var(--red); color:var(--red); animation:pulse 1.2s infinite; }
+  .rec-btn.active:hover { background:var(--red); color:white; }
+  .read-q-btn { display:flex; align-items:center; gap:6px; padding:8px 16px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); font-family:'Source Serif 4',serif; font-size:12px; cursor:pointer; transition:all 0.2s; }
+  .read-q-btn:hover { border-color:var(--gold); color:var(--gold); }
+  .transcript-box { margin-top:12px; background:#0a0d14; border:1px solid var(--border); border-radius:6px; padding:12px 14px; font-size:13px; color:#9090a8; font-style:italic; min-height:56px; line-height:1.7; }
+  .transcript-placeholder { color:#4a4a5a; }
+
+  /* RESULTS */
+  .results { background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .results-header { padding:40px 28px; text-align:center; border-bottom:1px solid var(--border); background:#13171f; }
+  .band-score { font-family:'Playfair Display',serif; font-size:80px; color:var(--gold); line-height:1; margin-bottom:8px; }
+  .band-label { font-size:14px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+  .score-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1px; background:var(--border); }
+  .score-cell { background:var(--panel); padding:24px; text-align:center; }
+  .score-cell-name { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .score-cell-val { font-family:'Playfair Display',serif; font-size:36px; color:var(--cream); }
+  .score-cell-sub { font-size:12px; color:var(--muted); margin-top:4px; }
+  .band-bar-wrap { padding:28px 28px 0; }
+  .band-bar-wrap h3 { font-family:'Playfair Display',serif; font-size:18px; color:var(--cream); margin-bottom:20px; }
+  .band-row { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+  .band-row-label { font-size:12px; color:var(--muted); width:80px; text-align:right; }
+  .band-bar-outer { flex:1; height:12px; background:#0f1117; border-radius:6px; overflow:hidden; }
+  .band-bar-inner { height:100%; border-radius:6px; background:linear-gradient(90deg,var(--accent),var(--gold)); transition:width 1s ease; }
+  .band-row-val { font-family:'Playfair Display',serif; font-size:18px; color:var(--gold); width:32px; }
+  .answer-key { padding:28px; }
+  .answer-key h3 { font-family:'Playfair Display',serif; font-size:18px; color:var(--cream); margin-bottom:18px; }
+  .answer-item { display:flex; gap:12px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .answer-item:last-child { border-bottom:none; }
+  .ans-q { color:var(--muted); min-width:44px; }
+  .ans-yours { color:var(--text); flex:1; }
+  .ans-correct-mark { color:var(--green); }
+  .ans-wrong-mark { color:var(--red); }
+  .correct-ans { color:var(--green); font-style:italic; }
+  .ai-feedback { padding:28px; border-top:1px solid var(--border); }
+  .ai-feedback h3 { font-family:'Playfair Display',serif; font-size:18px; color:var(--cream); margin-bottom:18px; }
+  .feedback-card { background:#13171f; border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:16px; }
+  .feedback-card h4 { font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
+  .feedback-card p { font-size:14px; line-height:1.8; color:#c8c0b0; white-space:pre-wrap; }
+  .loading-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold); margin:0 3px; animation:bounce 1.2s infinite; }
+  .loading-dot:nth-child(2) { animation-delay:0.2s; }
+  .loading-dot:nth-child(3) { animation-delay:0.4s; }
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)} }
+  .band-desc { font-size:12px; color:var(--muted); margin-top:6px; font-style:italic; }
+
+  @media(max-width:600px){
+    .section-header{flex-direction:column;}
+    .tabs{flex-wrap:wrap;}
+    .tab{font-size:11px;padding:8px 4px;}
+    .actions{flex-direction:column;}
+    .btn{width:100%;text-align:center;}
+    .audio-controls{flex-direction:column;align-items:flex-start;}
+  }
+`;
+
+// ─── IELTS BAND CONVERSION TABLES ────────────────────────────────────────────
+// Official IELTS raw→band for 40-question tests, scaled to 10
+function rawToListeningBand(correct) {
+  // official IELTS Listening band scale (out of 40, scaled to 10 here)
+  const scale = [0,1,1,1,1,1,1.5,2,2,2.5,2.5,3,3,3.5,3.5,4,4,4.5,4.5,5,5,5.5,5.5,6,6,6.5,6.5,7,7,7,7.5,7.5,8,8,8,8.5,8.5,8.5,9,9,9];
+  return scale[Math.min(correct, 40)] || 0;
+}
+function rawToReadingBand(correct) {
+  const scale = [0,1,1,1,1,1,1.5,2,2,2.5,2.5,3,3,3.5,3.5,4,4,4.5,4.5,5,5,5.5,5.5,6,6,6.5,6.5,7,7,7,7.5,7.5,8,8,8,8.5,8.5,8.5,9,9,9];
+  return scale[Math.min(correct, 40)] || 0;
+}
+
+// Band descriptor map
+const BAND_DESCRIPTORS = {
+  9: "Expert User", 8.5: "Expert User", 8: "Very Good User",
+  7.5: "Good User", 7: "Good User", 6.5: "Competent User",
+  6: "Competent User", 5.5: "Modest User", 5: "Modest User",
+  4.5: "Limited User", 4: "Limited User", 3.5: "Extremely Limited",
+  3: "Extremely Limited", 2.5: "Intermittent User", 2: "Intermittent User",
+  1.5: "Non User", 1: "Non User", 0: "Did Not Attempt"
+};
+
+function getBandDescriptor(band) {
+  const b = Math.round(parseFloat(band) * 2) / 2;
+  return BAND_DESCRIPTORS[b] || "Limited User";
+}
+
+function roundToHalf(n) {
+  return Math.round(n * 2) / 2;
+}
+
+// ─── TTS HOOK ────────────────────────────────────────────────────────────────
+function useTTS() {
+  const [speaking, setSpeaking] = useState(false);
+  const [supported] = useState(() => typeof window !== "undefined" && "speechSynthesis" in window);
+  const utterRef = useRef(null);
+
+  const speak = useCallback((text, rate = 0.92) => {
+    if (!supported) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = rate;
+    u.pitch = 1;
+    u.lang = "en-GB";
+    // prefer a British voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const british = voices.find(v => v.lang === "en-GB") || voices.find(v => v.lang.startsWith("en")) || null;
+    if (british) u.voice = british;
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    utterRef.current = u;
+    window.speechSynthesis.speak(u);
+  }, [supported]);
+
+  const stop = useCallback(() => {
+    if (!supported) return;
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+  }, [supported]);
+
+  return { speak, stop, speaking, supported };
+}
+
+// ─── SPEECH RECOGNITION HOOK ─────────────────────────────────────────────────
+function useSpeechRecognition() {
+  const [supported] = useState(() => typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window));
+  const recRef = useRef(null);
+
+  const startRecognition = useCallback((onResult, onEnd) => {
+    if (!supported) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.interimResults = true;
+    rec.continuous = true;
+    rec.onresult = (e) => {
+      let transcript = "";
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      onResult(transcript);
+    };
+    rec.onend = () => { onEnd && onEnd(); };
+    rec.onerror = () => { onEnd && onEnd(); };
+    recRef.current = rec;
+    rec.start();
+  }, [supported]);
+
+  const stopRecognition = useCallback(() => {
+    if (recRef.current) { try { recRef.current.stop(); } catch(e) {} }
+  }, []);
+
+  return { startRecognition, stopRecognition, supported };
+}
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const LISTENING_SCRIPT = `Good morning, can I help you? Yes, I would like to enrol in an English language course at your centre. Of course! Could I take your full name? It's Maria Fernandez. F, E, R, N, A, N, D, E, Z. Thank you, Maria. And your date of birth? The fourteenth of March, nineteen ninety-two. Which course are you interested in — the morning or the evening programme? The evening programme, please. I work until five o'clock. That starts at six thirty and runs three days a week — Monday, Wednesday and Friday. That suits me perfectly. What is the fee? The twelve-week course costs four hundred and eighty dollars, or you can pay monthly — one hundred and sixty dollars per month. I will pay the full amount. Do you accept bank transfer? Yes, or credit card. We also need one form of photo ID and proof of address. I have my passport and a recent utility bill with me. Perfect. The course starts on the third of September. You will receive a confirmation email within forty-eight hours.`;
+
+const LISTENING = {
+  qGroups: [
+    {
+      title: "Questions 1–5 · Form Completion",
+      instructions: "Complete the enrolment form. Write NO MORE THAN TWO WORDS AND/OR A NUMBER.",
+      questions: [
+        { id:"l1", num:1, type:"fill", text:"Applicant's surname:", answer:"fernandez" },
+        { id:"l2", num:2, type:"fill", text:"Date of birth:", answer:"14 march 1992" },
+        { id:"l3", num:3, type:"fill", text:"Preferred programme:", answer:"evening" },
+        { id:"l4", num:4, type:"fill", text:"Full course fee:", answer:"480" },
+        { id:"l5", num:5, type:"fill", text:"Course start date:", answer:"3 september" },
+      ]
+    },
+    {
+      title: "Questions 6–10 · Multiple Choice",
+      questions: [
+        { id:"l6", num:6, type:"mcq", text:"The evening programme runs on:", options:["Tuesday, Thursday and Saturday","Monday, Wednesday and Friday","Monday, Tuesday and Thursday","Wednesday, Friday and Sunday"], answer:1 },
+        { id:"l7", num:7, type:"mcq", text:"The monthly payment option is:", options:["$140","$150","$160","$180"], answer:2 },
+        { id:"l8", num:8, type:"mcq", text:"Which payment method is NOT mentioned?", options:["Bank transfer","Credit card","Cash","Cheque"], answer:2 },
+        { id:"l9", num:9, type:"mcq", text:"Maria's proof of address is:", options:["Bank statement","Driving licence","Utility bill","Rental agreement"], answer:2 },
+        { id:"l10", num:10, type:"mcq", text:"Confirmation email arrives within:", options:["24 hours","48 hours","72 hours","One week"], answer:1 },
+      ]
+    }
+  ]
+};
+
+const READING = {
+  passage: {
+    title: "The Science of Sleep",
+    text: `<p>Sleep is one of the most universal yet least understood aspects of human biology. Despite spending roughly one-third of our lives asleep, scientists are still piecing together why we sleep and what happens during those unconscious hours. What is clear, however, is that sleep is not a passive state — it is an active and highly regulated process essential for physical and cognitive health.</p>
+    <p>Sleep is broadly divided into two categories: rapid eye movement (REM) sleep and non-REM sleep. Non-REM sleep consists of three stages, ranging from light sleep to deep, restorative sleep known as slow-wave sleep. REM sleep, during which most vivid dreaming occurs, plays a critical role in memory consolidation and emotional regulation. A full sleep cycle takes approximately 90 minutes, and a healthy adult typically completes four to six cycles per night.</p>
+    <p>The body's sleep-wake cycle is controlled by the circadian rhythm, an internal clock approximately 24 hours in length. This rhythm is primarily regulated by light exposure, which suppresses the production of melatonin — the hormone that signals the body to prepare for sleep. Disruptions to the circadian rhythm, such as those caused by shift work, jet lag, or excessive screen time before bed, can have significant consequences for overall health.</p>
+    <p>Chronic sleep deprivation has been linked to a range of serious health conditions, including obesity, type 2 diabetes, cardiovascular disease, and impaired immune function. Research published in leading medical journals has consistently demonstrated that adults who sleep fewer than seven hours per night face a significantly elevated risk of these outcomes compared with those who achieve the recommended seven to nine hours.</p>
+    <p>Interestingly, the relationship between sleep and the brain extends beyond rest. During sleep, the glymphatic system — a waste-clearance mechanism unique to the brain — becomes highly active, flushing out toxic proteins such as beta-amyloid, which is associated with Alzheimer's disease. This discovery has shifted scientific thinking about the purpose of sleep, suggesting it may be as important for neurological health as for physical recovery.</p>`
+  },
+  qGroups: [
+    {
+      title: "Questions 1–5 · True / False / Not Given",
+      instructions: "Do the following statements agree with the passage? Write TRUE, FALSE, or NOT GIVEN.",
+      questions: [
+        { id:"r1", num:1, type:"mcq", text:"Scientists fully understand why humans need sleep.", options:["TRUE","FALSE","NOT GIVEN"], answer:1 },
+        { id:"r2", num:2, type:"mcq", text:"REM sleep is important for memory consolidation.", options:["TRUE","FALSE","NOT GIVEN"], answer:0 },
+        { id:"r3", num:3, type:"mcq", text:"The circadian rhythm lasts exactly 24 hours.", options:["TRUE","FALSE","NOT GIVEN"], answer:2 },
+        { id:"r4", num:4, type:"mcq", text:"Adults sleeping under seven hours face elevated health risks.", options:["TRUE","FALSE","NOT GIVEN"], answer:0 },
+        { id:"r5", num:5, type:"mcq", text:"Beta-amyloid protein is beneficial to brain function.", options:["TRUE","FALSE","NOT GIVEN"], answer:2 },
+      ]
+    },
+    {
+      title: "Questions 6–10 · Multiple Choice",
+      questions: [
+        { id:"r6", num:6, type:"mcq", text:"How long does one complete sleep cycle last?", options:["60 minutes","90 minutes","120 minutes","45 minutes"], answer:1 },
+        { id:"r7", num:7, type:"mcq", text:"What does melatonin do?", options:["Disrupts the circadian rhythm","Increases alertness","Signals the body to prepare for sleep","Regulates body temperature"], answer:2 },
+        { id:"r8", num:8, type:"mcq", text:"Which is NOT mentioned as a consequence of sleep deprivation?", options:["Obesity","Cardiovascular disease","Depression","Type 2 diabetes"], answer:2 },
+        { id:"r9", num:9, type:"mcq", text:"The glymphatic system is described as:", options:["A type of sleep stage","A brain waste-clearance mechanism","A hormone that regulates sleep","Part of the immune system"], answer:1 },
+        { id:"r10", num:10, type:"mcq", text:"Recommended nightly sleep for adults:", options:["5–7 hours","6–8 hours","7–9 hours","8–10 hours"], answer:2 },
+      ]
+    }
+  ]
+};
+
+const WRITING_TASKS = [
+  {
+    id:"w1", label:"Task 1", minWords:150,
+    prompt:`The bar chart below shows the average hours per week that adults in four countries (USA, UK, Japan, Brazil) spent on leisure activities in 2022.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.`,
+    chartNote:"USA: 35 hrs | UK: 28 hrs | Japan: 19 hrs | Brazil: 31 hrs"
+  },
+  {
+    id:"w2", label:"Task 2", minWords:250,
+    prompt:`Some people believe that technology has made our lives more complicated, while others argue that it has simplified them.\n\nDiscuss both views and give your own opinion. Include relevant examples.\n\nWrite at least 250 words.`
+  }
+];
+
+const SPEAKING_PARTS = [
+  {
+    part:"Part 1 — Introduction & Interview", duration:"4–5 minutes",
+    questions:[
+      "Tell me about where you grew up.",
+      "What kind of music do you enjoy and why?",
+      "Do you prefer cooking at home or eating out? Why?",
+      "How do you usually spend your weekends?"
+    ]
+  },
+  {
+    part:"Part 2 — Individual Long Turn", duration:"3–4 minutes",
+    cueCard:{
+      title:"Describe a memorable journey you have taken.",
+      bullets:["Where you went","Who you travelled with","What happened during the journey","Why the journey was memorable"],
+      note:"You have 1 minute to prepare. Then speak for 1–2 minutes."
+    }
+  },
+  {
+    part:"Part 3 — Two-way Discussion", duration:"4–5 minutes",
+    questions:[
+      "How has the way people travel changed in recent decades?",
+      "What are the environmental impacts of increased tourism?",
+      "Do you think travel broadens the mind? Why or why not?",
+      "Should governments restrict international travel to protect the environment?"
+    ]
+  }
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function fmt(s) {
+  return `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+}
+function countWords(str) { return str.trim().split(/\s+/).filter(Boolean).length; }
+
+// ─── AI SCORING via Anthropic API ───────────────────────────────────────────
+async function scoreWithAI(section, content) {
+  const prompts = {
+    writing: `You are a certified IELTS examiner. Score the following IELTS Writing responses strictly according to the official IELTS Writing Band Descriptors (Task Achievement/Response, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy). 
+
+Task 1 response: """${content.task1}"""
+Task 2 response: """${content.task2}"""
+
+Return ONLY valid JSON in this exact format, no markdown, no extra text:
+{"task1_band": <number 0-9, increments of 0.5>, "task2_band": <number 0-9, increments of 0.5>, "overall_band": <number 0-9, increments of 0.5>, "task1_feedback": "<2-3 sentence feedback>", "task2_feedback": "<2-3 sentence feedback>", "strengths": "<one strength>", "improvements": "<one key improvement>"}`,
+
+    speaking: `You are a certified IELTS examiner. Score the following IELTS Speaking transcripts strictly according to the official IELTS Speaking Band Descriptors (Fluency & Coherence, Lexical Resource, Grammatical Range & Accuracy, Pronunciation).
+
+Part 1 responses: """${content.part1}"""
+Part 2 response: """${content.part2}"""
+Part 3 responses: """${content.part3}"""
+
+Return ONLY valid JSON in this exact format, no markdown, no extra text:
+{"band": <number 0-9, increments of 0.5>, "fluency_band": <number 0-9>, "lexical_band": <number 0-9>, "grammar_band": <number 0-9>, "feedback": "<3-4 sentence overall feedback>", "strengths": "<one strength>", "improvements": "<one key improvement>"}`
+  };
+
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: prompts[section] }]
+    })
+  });
+  const data = await resp.json();
+  const text = data.content?.map(b => b.text || "").join("") || "";
+  try {
+    return JSON.parse(text.replace(/```json|```/g, "").trim());
+  } catch(e) {
+    return null;
+  }
+}
+
+// ─── COMPONENTS ──────────────────────────────────────────────────────────────
+function Timer({ seconds }) {
+  const cls = seconds < 60 ? "danger" : seconds < 300 ? "warning" : "";
+  return (
+    <div className="timer-block">
+      <div className="timer-label">Time Left</div>
+      <div className={`timer-value ${cls}`}>{fmt(seconds)}</div>
+    </div>
+  );
+}
+
+function QuestionBlock({ q, answered, onAnswer, submitted }) {
+  if (q.type === "mcq") {
+    return (
+      <div className="question">
+        <div className="q-text"><span className="q-num">{q.num}.</span>{q.text}</div>
+        <div className="options">
+          {q.options.map((opt, i) => {
+            let cls = "";
+            if (submitted) { if (i === q.answer) cls = "correct"; else if (answered === i) cls = "incorrect"; }
+            else if (answered === i) cls = "selected";
+            return (
+              <div key={i} className={`option ${cls}`} onClick={() => !submitted && onAnswer(q.id, i)}>
+                <span className="option-letter">{String.fromCharCode(65+i)}</span>{opt}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  if (q.type === "fill") {
+    let iCls = "";
+    if (submitted) {
+      iCls = (answered||"").toLowerCase().trim() === q.answer.toLowerCase() ? "correct" : "incorrect";
+    }
+    return (
+      <div className="question">
+        <div className="q-text"><span className="q-num">{q.num}.</span>{q.text}</div>
+        <input className={`fill-input ${iCls}`} value={answered||""} onChange={e => !submitted && onAnswer(q.id, e.target.value)} placeholder="Your answer…" disabled={submitted} />
+      </div>
+    );
+  }
+  return null;
+}
+
+// ─── LISTENING SECTION ───────────────────────────────────────────────────────
+function ListeningSection({ answers, onAnswer, submitted, onSubmit, timerSec }) {
+  const { speak, stop, speaking, supported } = useTTS();
+  const [speed, setSpeed] = useState(0.9);
+  const [played, setPlayed] = useState(false);
+  const allQ = LISTENING.qGroups.flatMap(g => g.questions);
+  const done = allQ.filter(q => answers[q.id] !== undefined).length;
+
+  return (
+    <div className="section-panel">
+      <div className="section-header">
+        <div>
+          <div className="section-title">Listening Test</div>
+          <div className="section-desc">Section 1 — Course Enrolment Conversation. Listen carefully and answer the questions.</div>
+          <div style={{marginTop:8,fontSize:12,color:"var(--muted)"}}>Answered: <strong style={{color:"var(--gold-light)"}}>{done}/{allQ.length}</strong></div>
+        </div>
+        <Timer seconds={timerSec} />
+      </div>
+
+      <div className="passage-block">
+        <div className="audio-player">
+          <div className="audio-top">
+            <div className="audio-icon">🎧</div>
+            <div className="audio-info">
+              <h4>Section 1 — English Centre Enrolment</h4>
+              <p>A conversation between a student and an admissions officer. {!supported && <span style={{color:"var(--red)"}}>TTS not supported in this browser — read transcript below.</span>}</p>
+            </div>
+          </div>
+          <div className="audio-controls">
+            <button
+              className={`play-btn ${speaking ? "playing" : ""}`}
+              disabled={!supported}
+              onClick={() => {
+                if (speaking) { stop(); } else { setPlayed(true); speak(LISTENING_SCRIPT, speed); }
+              }}
+            >
+              {speaking ? "⏹ Stop Audio" : played ? "▶ Play Again" : "▶ Play Audio"}
+            </button>
+            <select className="speed-select" value={speed} onChange={e => setSpeed(parseFloat(e.target.value))}>
+              <option value={0.75}>0.75× Slow</option>
+              <option value={0.9}>0.9× Normal</option>
+              <option value={1.0}>1.0× Fast</option>
+            </select>
+            {speaking && <span className="tts-status"><span className="tts-dot" />Playing audio…</span>}
+          </div>
+          {!supported && (
+            <div style={{marginTop:14,fontSize:13,color:"#9090a8",fontStyle:"italic",lineHeight:1.8}}>
+              <strong style={{color:"var(--gold-light)",fontStyle:"normal"}}>Transcript:</strong> {LISTENING_SCRIPT}
+            </div>
+          )}
+        </div>
+        <div style={{fontSize:12,color:"var(--muted)",marginTop:8,fontStyle:"italic"}}>
+          💡 In the real IELTS test, the audio plays once only. You may take notes while listening.
+        </div>
+      </div>
+
+      <div className="questions-block">
+        {LISTENING.qGroups.map(g => (
+          <div className="q-group" key={g.title}>
+            <div className="q-group-title">{g.title}</div>
+            {g.instructions && <p style={{fontSize:13,color:"var(--muted)",marginBottom:14,fontStyle:"italic"}}>{g.instructions}</p>}
+            {g.questions.map(q => <QuestionBlock key={q.id} q={q} answered={answers[q.id]} onAnswer={onAnswer} submitted={submitted} />)}
+          </div>
+        ))}
+      </div>
+      <div className="actions">
+        <span style={{fontSize:13,color:"var(--muted)"}}>Complete all {allQ.length} questions.</span>
+        {!submitted
+          ? <button className="btn btn-primary" onClick={onSubmit}>Submit Listening</button>
+          : <span style={{color:"var(--green)",fontSize:13}}>✓ Submitted</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─── READING SECTION ─────────────────────────────────────────────────────────
+function ReadingSection({ answers, onAnswer, submitted, onSubmit, timerSec }) {
+  const { speak, stop, speaking, supported } = useTTS();
+  const allQ = READING.qGroups.flatMap(g => g.questions);
+  const done = allQ.filter(q => answers[q.id] !== undefined).length;
+  const passageText = READING.passage.text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  return (
+    <div className="section-panel">
+      <div className="section-header">
+        <div>
+          <div className="section-title">Reading Test</div>
+          <div className="section-desc">Academic Passage 1 — Read and answer all questions.</div>
+          <div style={{marginTop:8,fontSize:12,color:"var(--muted)"}}>Answered: <strong style={{color:"var(--gold-light)"}}>{done}/{allQ.length}</strong></div>
+        </div>
+        <Timer seconds={timerSec} />
+      </div>
+      <div className="passage-block">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
+          <div className="passage-title">{READING.passage.title}</div>
+          {supported && (
+            <button className={`read-q-btn`} onClick={() => speaking ? stop() : speak(passageText, 0.95)}>
+              {speaking ? "⏹ Stop" : "🔊 Read Passage Aloud"}
+            </button>
+          )}
+        </div>
+        <div className="passage-text" dangerouslySetInnerHTML={{__html: READING.passage.text}} />
+      </div>
+      <div className="questions-block">
+        {READING.qGroups.map(g => (
+          <div className="q-group" key={g.title}>
+            <div className="q-group-title">{g.title}</div>
+            {g.instructions && <p style={{fontSize:13,color:"var(--muted)",marginBottom:14,fontStyle:"italic"}}>{g.instructions}</p>}
+            {g.questions.map(q => <QuestionBlock key={q.id} q={q} answered={answers[q.id]} onAnswer={onAnswer} submitted={submitted} />)}
+          </div>
+        ))}
+      </div>
+      <div className="actions">
+        <span style={{fontSize:13,color:"var(--muted)"}}>Complete all {allQ.length} questions.</span>
+        {!submitted
+          ? <button className="btn btn-primary" onClick={onSubmit}>Submit Reading</button>
+          : <span style={{color:"var(--green)",fontSize:13}}>✓ Submitted</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─── WRITING SECTION ─────────────────────────────────────────────────────────
+function WritingSection({ answers, onAnswer, submitted, onSubmit, timerSec }) {
+  const { speak, stop, speaking } = useTTS();
+  return (
+    <div className="section-panel">
+      <div className="section-header">
+        <div>
+          <div className="section-title">Writing Test</div>
+          <div className="section-desc">Complete both tasks. Task 1: min 150 words · Task 2: min 250 words. Spend ~20 min on Task 1, ~40 min on Task 2.</div>
+        </div>
+        <Timer seconds={timerSec} />
+      </div>
+      <div className="questions-block">
+        {WRITING_TASKS.map(task => {
+          const text = answers[task.id] || "";
+          const wc = countWords(text);
+          const wcCls = wc >= task.minWords ? "ok" : wc > task.minWords * 0.7 ? "warn" : "";
+          return (
+            <div className="q-group" key={task.id}>
+              <div className="q-group-title">{task.label} — Minimum {task.minWords} words</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+                <div className="writing-prompt">{task.prompt}</div>
+              </div>
+              {task.chartNote && (
+                <div style={{background:"#0a0d14",border:"1px dashed var(--border)",borderRadius:8,padding:"12px 16px",marginBottom:14,fontSize:13,color:"var(--muted)"}}>
+                  📊 <em>Imagined chart data:</em> {task.chartNote}
+                </div>
+              )}
+              <button className="read-q-btn" style={{marginBottom:12}} onClick={() => speaking ? stop() : speak(task.prompt, 0.88)}>
+                🔊 Read Task Aloud
+              </button>
+              <textarea className="textarea-input" value={text} onChange={e => !submitted && onAnswer(task.id, e.target.value)} placeholder="Write your response here…" disabled={submitted} rows={12} />
+              <div className={`word-count ${wcCls}`}>{wc} word{wc!==1?"s":""} — {wc >= task.minWords ? "✓ Minimum reached" : `${task.minWords - wc} more needed`}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="actions">
+        <span style={{fontSize:13,color:"var(--muted)"}}>Your writing will be scored by AI using official IELTS criteria.</span>
+        {!submitted
+          ? <button className="btn btn-primary" onClick={onSubmit}>Submit Writing</button>
+          : <span style={{color:"var(--green)",fontSize:13}}>✓ Submitted</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─── SPEAKING SECTION ─────────────────────────────────────────────────────────
+function SpeakingSection({ transcripts, onTranscript, submitted, onSubmit, timerSec }) {
+  const { speak, stop, speaking } = useTTS();
+  const { startRecognition, stopRecognition, supported: srSupported } = useSpeechRecognition();
+  const [recording, setRecording] = useState({});
+  const [liveText, setLiveText] = useState({});
+
+  const toggleRecord = (key, prompt) => {
+    if (recording[key]) {
+      stopRecognition();
+      setRecording(r => ({...r, [key]: false}));
+    } else {
+      if (speaking) stop();
+      setRecording(r => ({...r, [key]: true}));
+      const prev = transcripts[key] || "";
+      startRecognition(
+        (text) => { setLiveText(t => ({...t, [key]: text})); onTranscript(key, prev + " " + text); },
+        () => setRecording(r => ({...r, [key]: false}))
+      );
+    }
+  };
+
+  return (
+    <div className="section-panel">
+      <div className="section-header">
+        <div>
+          <div className="section-title">Speaking Test</div>
+          <div className="section-desc">Three parts. Listen to each question, then record your spoken response. Your transcribed answers will be scored by AI.</div>
+        </div>
+        <Timer seconds={timerSec} />
+      </div>
+      <div className="questions-block">
+        {SPEAKING_PARTS.map((part, pi) => (
+          <div className="q-group" key={pi}>
+            <div className="q-group-title">{part.part} · {part.duration}</div>
+            {part.questions && part.questions.map((q, qi) => {
+              const key = `p${pi}q${qi}`;
+              return (
+                <div className="speaking-card" key={qi}>
+                  <h4>Question {qi+1}</h4>
+                  <p style={{fontSize:14,color:"var(--text)",lineHeight:1.7,marginBottom:10}}>{q}</p>
+                  <div className="speak-controls">
+                    <button className="read-q-btn" onClick={() => speaking ? stop() : speak(q, 0.88)}>
+                      🔊 {speaking ? "Stop" : "Read Question"}
+                    </button>
+                    {srSupported ? (
+                      <button className={`rec-btn ${recording[key] ? "active" : ""}`} onClick={() => !submitted && toggleRecord(key, q)}>
+                        {recording[key] ? "⏹ Stop Recording" : "🎙 Record Answer"}
+                      </button>
+                    ) : (
+                      <span style={{fontSize:12,color:"var(--muted)"}}>Mic not available — type below</span>
+                    )}
+                  </div>
+                  {!srSupported && (
+                    <textarea className="textarea-input" style={{marginTop:10,minHeight:80}} value={transcripts[key]||""} onChange={e => !submitted && onTranscript(key, e.target.value)} placeholder="Type your spoken answer here…" disabled={submitted} rows={3} />
+                  )}
+                  {srSupported && (
+                    <div className="transcript-box">
+                      {transcripts[key] || liveText[key]
+                        ? (transcripts[key] || liveText[key])
+                        : <span className="transcript-placeholder">Your transcribed speech will appear here…</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {part.cueCard && (() => {
+              const key = `p${pi}cue`;
+              return (
+                <div className="speaking-card">
+                  <h4>Cue Card</h4>
+                  <p style={{fontSize:14,color:"var(--text)",marginBottom:10,fontWeight:600}}>{part.cueCard.title}</p>
+                  <ul>{part.cueCard.bullets.map((b,i) => <li key={i}>{b}</li>)}</ul>
+                  <p style={{fontSize:12,color:"var(--gold)",marginTop:10}}>{part.cueCard.note}</p>
+                  <div className="speak-controls">
+                    <button className="read-q-btn" onClick={() => speaking ? stop() : speak(part.cueCard.title + ". " + part.cueCard.bullets.join(". "), 0.88)}>
+                      🔊 Read Card
+                    </button>
+                    {srSupported ? (
+                      <button className={`rec-btn ${recording[key] ? "active" : ""}`} onClick={() => !submitted && toggleRecord(key, part.cueCard.title)}>
+                        {recording[key] ? "⏹ Stop Recording" : "🎙 Record Response"}
+                      </button>
+                    ) : (
+                      <textarea className="textarea-input" style={{marginTop:10,minHeight:80}} value={transcripts[key]||""} onChange={e => !submitted && onTranscript(key, e.target.value)} placeholder="Type your spoken answer here…" disabled={submitted} rows={3} />
+                    )}
+                  </div>
+                  {srSupported && (
+                    <div className="transcript-box">
+                      {transcripts[key] ? transcripts[key] : <span className="transcript-placeholder">Your transcribed speech will appear here…</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        ))}
+      </div>
+      <div className="actions">
+        <span style={{fontSize:13,color:"var(--muted)"}}>Your spoken responses will be scored by AI using official IELTS speaking criteria.</span>
+        {!submitted
+          ? <button className="btn btn-primary" onClick={onSubmit}>Complete Speaking</button>
+          : <span style={{color:"var(--green)",fontSize:13}}>✓ Completed</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─── RESULTS ─────────────────────────────────────────────────────────────────
+function Results({ lAnswers, rAnswers, wAnswers, sTranscripts, onRetake }) {
+  const [wScore, setWScore] = useState(null);
+  const [sScore, setSScore] = useState(null);
+  const [loading, setLoading] = useState({ w: false, s: false });
+  const [fetched, setFetched] = useState({ w: false, s: false });
+
+  // Listening score
+  const lQ = LISTENING.qGroups.flatMap(g => g.questions);
+  let lCorrect = 0;
+  lQ.forEach(q => {
+    if (q.type==="mcq" && lAnswers[q.id]===q.answer) lCorrect++;
+    if (q.type==="fill" && (lAnswers[q.id]||"").toLowerCase().trim()===q.answer.toLowerCase()) lCorrect++;
+  });
+  // Scale 10 questions → 40 question band table
+  const lScaled = Math.round(lCorrect / lQ.length * 40);
+  const lBand = rawToListeningBand(lScaled);
+
+  // Reading score
+  const rQ = READING.qGroups.flatMap(g => g.questions);
+  let rCorrect = 0;
+  rQ.forEach(q => { if (rAnswers[q.id]===q.answer) rCorrect++; });
+  const rScaled = Math.round(rCorrect / rQ.length * 40);
+  const rBand = rawToReadingBand(rScaled);
+
+  // Fetch AI scores on mount
+  useEffect(() => {
+    // Writing
+    const w1 = wAnswers["w1"] || "(no response)";
+    const w2 = wAnswers["w2"] || "(no response)";
+    if (!fetched.w) {
+      setFetched(f => ({...f, w: true}));
+      setLoading(l => ({...l, w: true}));
+      scoreWithAI("writing", { task1: w1, task2: w2 }).then(res => {
+        setWScore(res);
+        setLoading(l => ({...l, w: false}));
+      });
+    }
+    // Speaking
+    const part1 = [0,1,2,3].map(i => sTranscripts[`p0q${i}`] || "").join(" | ");
+    const part2 = sTranscripts["p1cue"] || "";
+    const part3 = [0,1,2,3].map(i => sTranscripts[`p2q${i}`] || "").join(" | ");
+    if (!fetched.s) {
+      setFetched(f => ({...f, s: true}));
+      setLoading(l => ({...l, s: true}));
+      scoreWithAI("speaking", { part1, part2, part3 }).then(res => {
+        setSScore(res);
+        setLoading(l => ({...l, s: false}));
+      });
+    }
+  }, []);
+
+  const wBand = wScore ? roundToHalf(wScore.overall_band) : null;
+  const sBand = sScore ? roundToHalf(sScore.band) : null;
+
+  const canShowOverall = wBand !== null && sBand !== null;
+  const overall = canShowOverall
+    ? roundToHalf((lBand + rBand + wBand + sBand) / 4)
+    : null;
+
+  const bands = [
+    { name: "Listening", val: lBand, sub: `${lCorrect}/${lQ.length} correct (scaled ${lScaled}/40)` },
+    { name: "Reading", val: rBand, sub: `${rCorrect}/${rQ.length} correct (scaled ${rScaled}/40)` },
+    { name: "Writing", val: wBand, sub: wScore ? `T1: ${wScore.task1_band} · T2: ${wScore.task2_band}` : "Scoring…" },
+    { name: "Speaking", val: sBand, sub: sScore ? `Fluency: ${sScore.fluency_band} · Lex: ${sScore.lexical_band}` : "Scoring…" },
+  ];
+
+  return (
+    <div className="results">
+      <div className="results-header">
+        <div style={{fontSize:12,letterSpacing:3,textTransform:"uppercase",color:"var(--gold)",marginBottom:12}}>Overall Band Score</div>
+        {overall !== null ? (
+          <>
+            <div className="band-score">{overall.toFixed(1)}</div>
+            <div className="band-label">{getBandDescriptor(overall)}</div>
+          </>
+        ) : (
+          <div style={{padding:"20px 0"}}>
+            <span className="loading-dot"/><span className="loading-dot"/><span className="loading-dot"/>
+            <div style={{fontSize:13,color:"var(--muted)",marginTop:12}}>AI is scoring your Writing & Speaking…</div>
+          </div>
+        )}
+      </div>
+
+      {/* Band Scores Grid */}
+      <div className="score-grid">
+        {bands.map(b => (
+          <div className="score-cell" key={b.name}>
+            <div className="score-cell-name">{b.name}</div>
+            <div className="score-cell-val">{b.val !== null ? b.val.toFixed(1) : "—"}</div>
+            <div className="score-cell-sub">{b.sub}</div>
+            {b.val !== null && <div className="band-desc">{getBandDescriptor(b.val)}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* Band Bars */}
+      <div className="band-bar-wrap">
+        <h3>Band Score Breakdown</h3>
+        {bands.map(b => (
+          <div className="band-row" key={b.name}>
+            <div className="band-row-label">{b.name}</div>
+            <div className="band-bar-outer">
+              <div className="band-bar-inner" style={{width: b.val !== null ? `${(b.val/9)*100}%` : "0%"}} />
+            </div>
+            <div className="band-row-val">{b.val !== null ? b.val.toFixed(1) : "…"}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* AI Writing Feedback */}
+      <div className="ai-feedback">
+        <h3>✍️ Writing Feedback (AI Examiner)</h3>
+        {loading.w ? (
+          <div style={{textAlign:"center",padding:20}}><span className="loading-dot"/><span className="loading-dot"/><span className="loading-dot"/><div style={{fontSize:13,color:"var(--muted)",marginTop:10}}>Analysing writing responses…</div></div>
+        ) : wScore ? (
+          <>
+            <div className="feedback-card">
+              <h4>Task 1 — Band {wScore.task1_band}</h4>
+              <p>{wScore.task1_feedback}</p>
+            </div>
+            <div className="feedback-card">
+              <h4>Task 2 — Band {wScore.task2_band}</h4>
+              <p>{wScore.task2_feedback}</p>
+            </div>
+            <div className="feedback-card">
+              <h4>Strengths</h4><p>{wScore.strengths}</p>
+            </div>
+            <div className="feedback-card">
+              <h4>Key Improvement</h4><p>{wScore.improvements}</p>
+            </div>
+          </>
+        ) : <p style={{color:"var(--muted)",fontSize:13}}>No writing submitted or scoring failed.</p>}
+
+        <h3 style={{marginTop:28}}>🗣️ Speaking Feedback (AI Examiner)</h3>
+        {loading.s ? (
+          <div style={{textAlign:"center",padding:20}}><span className="loading-dot"/><span className="loading-dot"/><span className="loading-dot"/><div style={{fontSize:13,color:"var(--muted)",marginTop:10}}>Analysing speaking transcripts…</div></div>
+        ) : sScore ? (
+          <>
+            <div className="feedback-card">
+              <h4>Overall Speaking — Band {sScore.band} · Fluency: {sScore.fluency_band} · Lexical: {sScore.lexical_band} · Grammar: {sScore.grammar_band}</h4>
+              <p>{sScore.feedback}</p>
+            </div>
+            <div className="feedback-card"><h4>Strengths</h4><p>{sScore.strengths}</p></div>
+            <div className="feedback-card"><h4>Key Improvement</h4><p>{sScore.improvements}</p></div>
+          </>
+        ) : <p style={{color:"var(--muted)",fontSize:13}}>No speaking responses submitted or scoring failed.</p>}
+      </div>
+
+      {/* Answer Key */}
+      <div className="answer-key">
+        <h3>Answer Key — Listening & Reading</h3>
+        {[...lQ, ...rQ].map(q => {
+          const ans = q.id.startsWith("l") ? lAnswers[q.id] : rAnswers[q.id];
+          const isCorrect = q.type==="mcq" ? ans===q.answer : (ans||"").toLowerCase().trim()===q.answer.toLowerCase();
+          const display = q.type==="mcq" ? (ans!==undefined ? `${String.fromCharCode(65+ans)}. ${q.options[ans]}` : "Not answered") : (ans||"Not answered");
+          const correct = q.type==="mcq" ? `${String.fromCharCode(65+q.answer)}. ${q.options[q.answer]}` : q.answer;
+          return (
+            <div className="answer-item" key={q.id}>
+              <span className="ans-q">Q{q.num}</span>
+              <span className={`ans-yours ${isCorrect?"ans-correct-mark":"ans-wrong-mark"}`}>{isCorrect?"✓":"✗"} {display}</span>
+              {!isCorrect && <span className="correct-ans">→ {correct}</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="actions" style={{justifyContent:"center"}}>
+        <button className="btn btn-primary" onClick={onRetake}>Retake Test</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+const SECTIONS = ["listening","reading","writing","speaking"];
+const DURATIONS = { listening:30*60, reading:60*60, writing:60*60, speaking:15*60 };
+
+function IELTSTest() {
+  const [active, setActive] = useState("listening");
+  const [submitted, setSubmitted] = useState({});
+  const [lAns, setLAns] = useState({});
+  const [rAns, setRAns] = useState({});
+  const [wAns, setWAns] = useState({});
+  const [sTranscripts, setSTranscripts] = useState({});
+  const [timers, setTimers] = useState({...DURATIONS});
+  const [showResults, setShowResults] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (submitted[active]) return;
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimers(t => ({...t, [active]: Math.max(0, t[active]-1)}));
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [active, submitted]);
+
+  const handleSubmit = (s) => { clearInterval(timerRef.current); setSubmitted(p => ({...p, [s]:true})); };
+  const allDone = SECTIONS.every(s => submitted[s]);
+  const progress = SECTIONS.filter(s => submitted[s]).length / SECTIONS.length * 100;
+
+  const retake = () => {
+    setActive("listening"); setSubmitted({}); setLAns({}); setRAns({}); setWAns({}); setSTranscripts({});
+    setTimers({...DURATIONS}); setShowResults(false);
+  };
+
+  return (
+    <>
+      <style>{style}</style>
+      <div className="app">
+        <div className="header">
+          <div className="header-label">Full Mock Examination</div>
+          <h1>IELTS Academic Practice Test</h1>
+          <div className="header-meta">
+            <span>Format: <strong>Academic</strong></span>
+            <span>Total: <strong>2 hrs 44 min</strong></span>
+            <span>+ Transfer: <strong>10 min</strong></span>
+            <span>Scoring: <strong>Official Band 0–9</strong></span>
+          </div>
+        </div>
+
+        {!showResults ? (
+          <>
+            <div className="progress-bar"><div className="progress-fill" style={{width:`${progress}%`}} /></div>
+            <div className="tabs">
+              {SECTIONS.map(s => (
+                <button key={s} className={`tab ${active===s?"active":""} ${submitted[s]?"done":""}`} onClick={() => setActive(s)}>
+                  {submitted[s]?"✓ ":""}{s.charAt(0).toUpperCase()+s.slice(1)}
+                  <br/><span style={{fontSize:10,opacity:0.7}}>{s==="listening"?"30 min":s==="reading"?"60 min":s==="writing"?"60 min":"15 min"}</span>
+                </button>
+              ))}
+            </div>
+
+            {active==="listening" && <ListeningSection answers={lAns} onAnswer={(id,v)=>setLAns(a=>({...a,[id]:v}))} submitted={!!submitted.listening} onSubmit={()=>handleSubmit("listening")} timerSec={timers.listening} />}
+            {active==="reading" && <ReadingSection answers={rAns} onAnswer={(id,v)=>setRAns(a=>({...a,[id]:v}))} submitted={!!submitted.reading} onSubmit={()=>handleSubmit("reading")} timerSec={timers.reading} />}
+            {active==="writing" && <WritingSection answers={wAns} onAnswer={(id,v)=>setWAns(a=>({...a,[id]:v}))} submitted={!!submitted.writing} onSubmit={()=>handleSubmit("writing")} timerSec={timers.writing} />}
+            {active==="speaking" && <SpeakingSection transcripts={sTranscripts} onTranscript={(k,v)=>setSTranscripts(t=>({...t,[k]:v}))} submitted={!!submitted.speaking} onSubmit={()=>handleSubmit("speaking")} timerSec={timers.speaking} />}
+
+            {allDone && (
+              <div style={{textAlign:"center",marginTop:28}}>
+                <button className="btn btn-primary" style={{fontSize:16,padding:"14px 48px"}} onClick={()=>setShowResults(true)}>
+                  View Band Scores & AI Feedback
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <Results lAnswers={lAns} rAnswers={rAns} wAnswers={wAns} sTranscripts={sTranscripts} onRetake={retake} />
+        )}
+
+        <div style={{textAlign:"center",marginTop:36,paddingTop:24,borderTop:"1px solid var(--border)",fontSize:12,color:"var(--muted)"}}>
+          Practice test only. Official IELTS is administered by British Council, IDP & Cambridge Assessment English.
+        </div>
+      </div>
+    </>
+  );
+}
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<IELTSTest />);
+  </script>
+</body>
+</html>
